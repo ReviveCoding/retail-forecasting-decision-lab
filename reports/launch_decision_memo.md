@@ -5,11 +5,11 @@
 This decision compares a tree-ensemble point forecast with a residual-corrected forecast, then evaluates the risk-safe corrected ordering policy under a public-data, offline, synthetic-inventory benchmark.
 
 ## Key evidence
-- WAPE relative improvement: 0.0303
-- Under-forecast relative improvement: -0.0564
+- WAPE relative improvement: 0.0314
+- Under-forecast relative improvement: -0.0600
 - Stockout delta, treatment minus control: -0.005952380952380959
-- Overstock relative worsening: 0.039954291950351856
-- Total-cost relative worsening: 0.016870710756267296
+- Overstock relative worsening: 0.03951602071547069
+- Total-cost relative worsening: 0.01663430297093187
 
 ## Guardrails
 - wape_improved: pass

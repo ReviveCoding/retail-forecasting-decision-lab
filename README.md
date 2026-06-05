@@ -141,3 +141,31 @@ The raw GPU residual corrector maximized WAPE improvement but shifted bias negat
 
 Claim boundary: this is an optional GPU specialty experiment built on generated forecast artifacts. Production-style claims should come from integrating the guarded GPU residual corrector directly into the main leakage-safe train/validation/test pipeline.
 
+
+## Model selection frontier
+
+The framework separates the accuracy frontier from the inventory-policy frontier. In the current run, `learned_abc_gpu_residual` is the accuracy-optimal forecast, while `learned_abc_release_safe_policy` is the release-gate treatment policy.
+
+Key outputs:
+
+- `outputs/model_selection_frontier.csv`
+- `outputs/model_selection_recommendation.json`
+- `reports/model_selection_frontier_report.md`
+
+Current decision: `ITERATE`. The learned ABC forecast improves WAPE versus the tree baseline, and the release-safe policy passes stockout, overstock, total-cost, and worst-slice guardrails. The remaining iteration item is the under-forecast guardrail.
+
+Claim boundary: this is an offline public-data decision artifact. Inventory impacts use synthetic/proxy overlays.
+
+## Model selection frontier
+
+The framework separates the accuracy frontier from the inventory-policy frontier. In the current run, `learned_abc_gpu_residual` is the accuracy-optimal forecast, while `learned_abc_release_safe_policy` is the release-gate treatment policy.
+
+Key outputs:
+
+- `outputs/model_selection_frontier.csv`
+- `outputs/model_selection_recommendation.json`
+- `reports/model_selection_frontier_report.md`
+
+Current decision: `ITERATE`. The learned ABC forecast improves WAPE versus the tree baseline, and the release-safe policy passes stockout, overstock, total-cost, and worst-slice guardrails. The remaining iteration item is the under-forecast guardrail.
+
+Claim boundary: this is an offline public-data decision artifact. Inventory impacts use synthetic/proxy overlays.

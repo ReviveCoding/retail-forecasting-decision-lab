@@ -1,0 +1,19 @@
+{
+  "recommended_decision": "ITERATE",
+  "accuracy_optimal_forecast": "learned_abc_gpu_residual",
+  "recommended_release_policy": "learned_abc_release_safe_policy",
+  "baseline_forecast": "tree_ensemble",
+  "control_policy": "tree_ensemble_policy",
+  "wape_relative_improvement_vs_tree": 0.07748037726699758,
+  "gate_guardrails": {
+    "wape_improved": "pass",
+    "under_forecast_improved": "fail",
+    "stockout_not_worse": "pass",
+    "overstock_guardrail_observed": "pass",
+    "total_cost_guardrail_observed": "pass",
+    "worst_slice_wape_guardrail_observed": "pass",
+    "ab_ci_stable_if_required": "pass"
+  },
+  "remaining_iteration_item": "under_forecast_improved",
+  "claim_boundary": "Offline public-data decision artifact. Inventory impacts use synthetic/proxy overlays."
+}

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.ensemble import HistGradientBoostingRegressor
 
 try:
     import torch
@@ -82,6 +83,30 @@ def _choose_numeric_features(df: pd.DataFrame) -> list[str]:
         if df[c].notna().mean() > 0.80 and df[c].nunique(dropna=True) > 1
     ]
     return cols
+
+
+
+def _coverage_metric_row(name, y_true, y_pred, device="cpu"):
+    y_true = np.asarray(y_true, dtype=float)
+    y_pred = np.clip(np.asarray(y_pred, dtype=float), 0.0, None)
+    covered = np.minimum(y_true, y_pred)
+    actual_sum = max(float(np.sum(y_true)), 1e-9)
+    pred_sum = max(float(np.sum(y_pred)), 1e-9)
+    recall = float(np.sum(covered) / actual_sum)
+    precision = float(np.sum(covered) / pred_sum)
+    f1 = float(2.0 * recall * precision / max(recall + precision, 1e-9))
+    return {
+        "model": name,
+        "device": device,
+        "n_test": int(len(y_true)),
+        "wape": _wape(y_true, y_pred),
+        "rmse": _rmse(y_true, y_pred),
+        "mean_bias": float(np.mean(y_pred - y_true)),
+        "under_forecast_rate": float(np.mean(y_pred < y_true)),
+        "demand_coverage_recall": recall,
+        "order_precision": precision,
+        "demand_coverage_f1": f1,
+    }
 
 
 def _to_builtin_dict(d: dict) -> dict:
@@ -281,6 +306,101 @@ def apply_guarded_gpu_residual_stage(
     pred_raw_test = np.clip(base_test + raw_test, 0.0, None)
     pred_guarded_test = np.clip(base_test + lam * np.clip(raw_test, clip_low, clip_high), 0.0, None)
 
+    # Learned ABC-style asymmetric under/over coverage correction.
+    # Fit under/over models only on residual_fit, select alpha/beta/cap on guard_val,
+    # and evaluate once on test with fixed selected parameters.
+    with torch.no_grad():
+        xf = torch.tensor(X_fit, dtype=torch.float32, device=device)
+        raw_fit = model(xf).detach().cpu().numpy()
+
+    pred_guarded_fit = np.clip(base_fit + lam * np.clip(raw_fit, clip_low, clip_high), 0.0, None)
+    pred_guarded_guard = np.clip(base_guard + lam * np.clip(raw_guard, clip_low, clip_high), 0.0, None)
+
+    under_target_fit = np.maximum(y_fit - pred_guarded_fit, 0.0)
+    over_target_fit = np.maximum(pred_guarded_fit - y_fit, 0.0)
+
+    under_model = HistGradientBoostingRegressor(
+        max_iter=80,
+        learning_rate=0.05,
+        max_leaf_nodes=15,
+        l2_regularization=0.05,
+        random_state=seed + 101,
+    )
+    over_model = HistGradientBoostingRegressor(
+        max_iter=80,
+        learning_rate=0.05,
+        max_leaf_nodes=15,
+        l2_regularization=0.05,
+        random_state=seed + 102,
+    )
+
+    under_model.fit(X_fit, under_target_fit)
+    over_model.fit(X_fit, over_target_fit)
+
+    guard_under = np.clip(under_model.predict(X_guard), 0.0, None)
+    guard_over = np.clip(over_model.predict(X_guard), 0.0, None)
+    test_under = np.clip(under_model.predict(X_test), 0.0, None)
+    test_over = np.clip(over_model.predict(X_test), 0.0, None)
+
+    abc_rows = []
+    tree_guard_metric = _coverage_metric_row("gpu_base_tree_guard", y_guard, base_guard, device="cpu")
+    guarded_guard_metric = _coverage_metric_row("guarded_gpu_guard", y_guard, pred_guarded_guard, device=device)
+
+    for abc_alpha in [0.0, 0.10, 0.20, 0.30, 0.40, 0.50, 0.75, 1.00]:
+        for abc_beta in [0.0, 0.05, 0.10, 0.20, 0.30, 0.50]:
+            for abc_cap_q in [0.75, 0.90, 0.95, 1.00]:
+                under_cap = float(np.quantile(guard_under, abc_cap_q))
+                over_cap = float(np.quantile(guard_over, abc_cap_q))
+                pred_abc_guard = np.clip(
+                    pred_guarded_guard
+                    + float(abc_alpha) * np.minimum(guard_under, under_cap)
+                    - float(abc_beta) * np.minimum(guard_over, over_cap),
+                    0.0,
+                    None,
+                )
+                row = _coverage_metric_row("learned_abc_guard_grid", y_guard, pred_abc_guard, device=device)
+                row.update({
+                    "alpha": float(abc_alpha),
+                    "beta": float(abc_beta),
+                    "cap_quantile": float(abc_cap_q),
+                    "under_cap": under_cap,
+                    "over_cap": over_cap,
+                })
+                abc_rows.append(row)
+
+    abc_grid = pd.DataFrame(abc_rows)
+    abc_candidates = abc_grid[
+        (abc_grid["wape"] <= float(tree_guard_metric["wape"]))
+        & (abc_grid["under_forecast_rate"] <= float(guarded_guard_metric["under_forecast_rate"]))
+        & (abc_grid["demand_coverage_f1"] >= float(guarded_guard_metric["demand_coverage_f1"]))
+    ].copy()
+
+    if abc_candidates.empty:
+        abc_candidates = abc_grid.copy()
+
+    abc_candidates["score"] = (
+        abc_candidates["wape"].rank(method="min")
+        + abc_candidates["under_forecast_rate"].rank(method="min")
+        + (-abc_candidates["demand_coverage_f1"]).rank(method="min")
+        + abc_candidates["mean_bias"].abs().rank(method="min")
+    )
+
+    selected_abc = abc_candidates.sort_values(["score", "wape"]).iloc[0]
+    selected_abc_dict = _to_builtin_dict(selected_abc.to_dict())
+
+    abc_alpha = float(selected_abc_dict["alpha"])
+    abc_beta = float(selected_abc_dict["beta"])
+    abc_under_cap = float(selected_abc_dict["under_cap"])
+    abc_over_cap = float(selected_abc_dict["over_cap"])
+
+    pred_learned_abc_test = np.clip(
+        pred_guarded_test
+        + abc_alpha * np.minimum(test_under, abc_under_cap)
+        - abc_beta * np.minimum(test_over, abc_over_cap),
+        0.0,
+        None,
+    )
+
     test_out["pred_gpu_base_tree"] = predict_forecaster(base_model, test_out)
     test_out["pred_gpu_residual_raw"] = np.nan
     test_out["pred_guarded_gpu_residual"] = np.nan
@@ -298,20 +418,35 @@ def apply_guarded_gpu_residual_stage(
     else:
         test_out["pred_release_safe_gpu_residual"] = test_out[["pred_guarded_gpu_residual", "pred_gpu_base_tree"]].max(axis=1)
 
+    test_out["pred_learned_abc_gpu_residual"] = np.nan
+    test_out.loc[valid_idx, "pred_learned_abc_gpu_residual"] = pred_learned_abc_test
+    test_out["pred_learned_abc_gpu_residual"] = test_out["pred_learned_abc_gpu_residual"].fillna(test_out["pred_release_safe_gpu_residual"])
+
     test_out["order_signal_guarded_gpu_residual"] = test_out["pred_guarded_gpu_residual"]
     test_out["order_signal_release_safe_gpu_residual"] = test_out["pred_release_safe_gpu_residual"]
+    test_out["order_signal_learned_abc_gpu_residual"] = test_out["pred_learned_abc_gpu_residual"]
+
+    # Keep learned ABC as the point forecast, but use a floor for inventory release safety.
+    if "pred_tree" in test_out.columns:
+        test_out["order_signal_learned_abc_release_safe"] = test_out[["pred_learned_abc_gpu_residual", "pred_tree"]].max(axis=1)
+    else:
+        test_out["order_signal_learned_abc_release_safe"] = test_out[["pred_learned_abc_gpu_residual", "pred_gpu_base_tree"]].max(axis=1)
 
     test_metrics = pd.DataFrame([
         _metric_row("gpu_base_tree", y_test, base_test, device="cpu"),
         _metric_row("raw_gpu_residual_corrected", y_test, pred_raw_test, device=device, train_seconds=train_seconds, inference_seconds=inference_seconds),
         _metric_row("guarded_gpu_residual_corrected", y_test, pred_guarded_test, device=device, train_seconds=train_seconds, inference_seconds=inference_seconds),
+        _metric_row("learned_abc_gpu_residual_corrected", y_test, pred_learned_abc_test, device=device, train_seconds=train_seconds, inference_seconds=inference_seconds),
     ])
 
+    abc_grid.to_csv(out_dir / "gpu_integrated_learned_abc_grid.csv", index=False)
+    pd.DataFrame([selected_abc_dict]).to_csv(out_dir / "gpu_integrated_selected_learned_abc.csv", index=False)
     grid.to_csv(out_dir / "gpu_integrated_guard_grid.csv", index=False)
     test_metrics.to_csv(out_dir / "gpu_integrated_metrics.csv", index=False)
     with open(out_dir / "gpu_integrated_selected_guard.json", "w", encoding="utf-8") as f:
         json.dump({
             "selected_guard": selected_dict,
+            "selected_learned_abc": selected_abc_dict,
             "device": device,
             "feature_columns": feature_cols,
             "split": {
@@ -344,6 +479,10 @@ def apply_guarded_gpu_residual_stage(
         "## Selected guard",
         "",
         pd.DataFrame([selected_dict]).to_markdown(index=False),
+        "",
+        "## Selected learned ABC correction",
+        "",
+        pd.DataFrame([selected_abc_dict]).to_markdown(index=False),
         "",
         "## Claim boundary",
         "",

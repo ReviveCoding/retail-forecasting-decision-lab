@@ -1,0 +1,11 @@
+frontier_role,candidate,layer,wape,rmse,mae,mean_bias,under_forecast_rate,stockout_rate,total_cost,demand_coverage_f1,decision_use
+Baseline forecast,tree_ensemble,forecast,0.7835903270100569,2.814442512417474,1.7486191285480377,0.3827804984196786,0.3375,,,,Reference tree-ensemble model.
+Accuracy-optimal forecast,learned_abc_gpu_residual,forecast,0.7228774528505477,2.754852884609964,1.6131354587718474,-0.1567765413826251,0.4267857142857142,,,,Lowest WAPE among evaluated point forecasts.
+RMSE-optimal forecast,learned_abc_gpu_residual,forecast,0.7228774528505477,2.754852884609964,1.6131354587718474,-0.1567765413826251,0.4267857142857142,,,,Lowest RMSE among evaluated point forecasts.
+Bias-balanced forecast,guarded_gpu_residual,forecast,0.7340042968552632,2.800804927615668,1.6379655410180844,-0.0810580690657453,0.4148809523809524,,,,"Lowest absolute mean bias, tie-broken by WAPE."
+Under-forecast-safe forecast,release_safe_gpu_residual,forecast,0.7940444925241114,2.843070814121248,1.7719480967100556,0.4459091324574332,0.3273809523809524,,,,"Lowest under-forecast rate, tie-broken by WAPE."
+Baseline policy,tree_ensemble_policy,policy,,,,,,0.1119047619047619,0.95867021836926,0.3899625128453745,Reference inventory policy at the gate slice.
+Release-gate treatment policy,learned_abc_release_safe_policy,policy,,,,,,0.1095238095238095,0.9649736647554208,0.3886755867235408,Policy currently used by gpu_guarded_release_gate.json.
+Stockout-safe policy,risk_safe_corrected_policy,policy,,,,,,0.1059523809523809,0.9746170292308236,0.3869393208936824,Lowest stockout rate at the gate slice.
+Coverage-F1 policy,learned_abc_gpu_residual_policy,policy,,,,,,0.1482142857142857,0.9094638607060788,0.4044164933905746,Highest inventory demand-coverage F1 at the gate slice.
+Cost-balanced policy,tree_ensemble_policy,policy,,,,,,0.1119047619047619,0.95867021836926,0.3899625128453745,Lowest total cost among feasible policies under baseline-relative constraints.

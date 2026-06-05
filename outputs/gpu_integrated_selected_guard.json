@@ -15,6 +15,24 @@
     "clip_high": -0.05795001611113548,
     "score": 22.0
   },
+  "selected_learned_abc": {
+    "model": "learned_abc_guard_grid",
+    "device": "cuda",
+    "n_test": 1680,
+    "wape": 0.7163759912737497,
+    "rmse": 2.514677922049821,
+    "mean_bias": 0.08574405757186507,
+    "under_forecast_rate": 0.3476190476190476,
+    "demand_coverage_recall": 0.6634541342791007,
+    "order_precision": 0.6359284423460656,
+    "demand_coverage_f1": 0.6493997407229732,
+    "alpha": 0.5,
+    "beta": 0.5,
+    "cap_quantile": 1.0,
+    "under_cap": 8.916352972452472,
+    "over_cap": 7.4583945859504235,
+    "score": 60.0
+  },
   "device": "cuda",
   "feature_columns": [
     "wm_yr_wk",

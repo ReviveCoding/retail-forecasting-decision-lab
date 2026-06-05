@@ -1,0 +1,2 @@
+model,device,n_test,wape,rmse,mean_bias,under_forecast_rate,demand_coverage_recall,order_precision,demand_coverage_f1,alpha,beta,cap_quantile,under_cap,over_cap,score
+learned_abc_guard_grid,cuda,1680,0.7163759912737497,2.514677922049821,0.08574405757186507,0.3476190476190476,0.6634541342791007,0.6359284423460656,0.6493997407229732,0.5,0.5,1.0,8.916352972452472,7.4583945859504235,60.0

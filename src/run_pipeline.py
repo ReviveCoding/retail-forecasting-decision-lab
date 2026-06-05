@@ -136,6 +136,8 @@ def main():
         pred_map["guarded_gpu_residual"] = "pred_guarded_gpu_residual"
     if "pred_release_safe_gpu_residual" in test.columns:
         pred_map["release_safe_gpu_residual"] = "pred_release_safe_gpu_residual"
+    if "pred_learned_abc_gpu_residual" in test.columns:
+        pred_map["learned_abc_gpu_residual"] = "pred_learned_abc_gpu_residual"
     metrics = evaluate_forecasts(test, pred_map)
     bias_by_slice = evaluate_bias_by_slice(test, pred_map)
     write_table(metrics, out_dir / 'forecast_metrics.csv')
@@ -152,6 +154,10 @@ def main():
         inv_pred_cols["guarded_gpu_residual_policy"] = "order_signal_guarded_gpu_residual"
     if "order_signal_release_safe_gpu_residual" in test.columns:
         inv_pred_cols["release_safe_gpu_residual_policy"] = "order_signal_release_safe_gpu_residual"
+    if "order_signal_learned_abc_gpu_residual" in test.columns:
+        inv_pred_cols["learned_abc_gpu_residual_policy"] = "order_signal_learned_abc_gpu_residual"
+    if "order_signal_learned_abc_release_safe" in test.columns:
+        inv_pred_cols["learned_abc_release_safe_policy"] = "order_signal_learned_abc_release_safe"
     inv_detail, inv_summary = simulate_inventory_policies(
         test,
         pred_cols=inv_pred_cols,
@@ -181,13 +187,13 @@ def main():
     )
     write_table(ab, out_dir / 'ab_test_summary.csv')
     ab_gpu = None
-    if ("release_safe_gpu_residual_policy" in inv_pred_cols) or ("guarded_gpu_residual_policy" in inv_pred_cols):
+    if ("learned_abc_release_safe_policy" in inv_pred_cols) or ("learned_abc_gpu_residual_policy" in inv_pred_cols) or ("release_safe_gpu_residual_policy" in inv_pred_cols) or ("guarded_gpu_residual_policy" in inv_pred_cols):
         import inspect
         _ab_params = inspect.signature(build_ab_style_readout).parameters
         _ab_seed = exp_cfg.get("random_seed", seed)
         _ab_unit_type = exp_cfg.get("unit_type", "item-store-week")
         _control = "tree_ensemble_policy"
-        _treatment = "release_safe_gpu_residual_policy" if "release_safe_gpu_residual_policy" in inv_pred_cols else "guarded_gpu_residual_policy"
+        _treatment = "learned_abc_release_safe_policy" if "learned_abc_release_safe_policy" in inv_pred_cols else ("learned_abc_gpu_residual_policy" if "learned_abc_gpu_residual_policy" in inv_pred_cols else ("release_safe_gpu_residual_policy" if "release_safe_gpu_residual_policy" in inv_pred_cols else "guarded_gpu_residual_policy"))
         if ("control_policy" in _ab_params) and ("treatment_policy" in _ab_params):
             ab_gpu = build_ab_style_readout(
                 inv_detail,
@@ -262,9 +268,9 @@ def main():
     )
     write_json(raw_gate, out_dir / 'raw_correction_release_gate.json')
     write_json(gate, out_dir / 'release_gate.json')
-    if (("release_safe_gpu_residual" in pred_map) or ("guarded_gpu_residual" in pred_map)) and (("release_safe_gpu_residual_policy" in inv_pred_cols) or ("guarded_gpu_residual_policy" in inv_pred_cols)):
-        _gpu_treatment_forecast = "release_safe_gpu_residual" if "release_safe_gpu_residual" in pred_map else "guarded_gpu_residual"
-        _gpu_treatment_policy = "release_safe_gpu_residual_policy" if "release_safe_gpu_residual_policy" in inv_pred_cols else "guarded_gpu_residual_policy"
+    if (("learned_abc_gpu_residual" in pred_map) or ("release_safe_gpu_residual" in pred_map) or ("guarded_gpu_residual" in pred_map)) and (("learned_abc_release_safe_policy" in inv_pred_cols) or ("learned_abc_gpu_residual_policy" in inv_pred_cols) or ("release_safe_gpu_residual_policy" in inv_pred_cols) or ("guarded_gpu_residual_policy" in inv_pred_cols)):
+        _gpu_treatment_forecast = "learned_abc_gpu_residual" if "learned_abc_gpu_residual" in pred_map else ("release_safe_gpu_residual" if "release_safe_gpu_residual" in pred_map else "guarded_gpu_residual")
+        _gpu_treatment_policy = "learned_abc_release_safe_policy" if "learned_abc_release_safe_policy" in inv_pred_cols else ("learned_abc_gpu_residual_policy" if "learned_abc_gpu_residual_policy" in inv_pred_cols else ("release_safe_gpu_residual_policy" if "release_safe_gpu_residual_policy" in inv_pred_cols else "guarded_gpu_residual_policy"))
         gpu_gate = build_release_gate(
             metrics, inv_summary, ab_gpu if ab_gpu is not None else ab, bias_by_slice,
             control_forecast="tree_ensemble",

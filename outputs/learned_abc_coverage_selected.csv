@@ -1,0 +1,2 @@
+candidate,n_rows,actual_sum,pred_sum,wape,demand_coverage_recall,order_precision,demand_coverage_f1,under_coverage_amount,over_coverage_amount,under_coverage_rate,over_coverage_rate,mean_bias,alpha,beta,cap_quantile,under_cap,over_cap,score
+learned_abc_select_grid,420,900.0,922.7808616954944,0.7296287077321488,0.6478416804092003,0.6318482931006881,0.6397450451898405,316.9424876317197,339.7233493272141,0.38333333333333336,0.6166666666666667,0.05424014689403432,0.5,0.3,0.75,1.0613529118420004,1.0682924042416921,168.0
