@@ -1,0 +1,8 @@
+﻿# Optional GPU dependencies.
+# Core pipeline remains CPU-runnable.
+# Install this only on CUDA-capable NVIDIA environments.
+
+--index-url https://download.pytorch.org/whl/cu128
+torch
+torchvision
+torchaudio

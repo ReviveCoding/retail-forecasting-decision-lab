@@ -1,0 +1,5 @@
+method,wape,rmse,mean_bias,under_forecast_rate,relative_wape_improvement_vs_tree_pct,notes,lambda,clip_quantile
+tree_ensemble_baseline,0.6894803047180176,3.0223424434661865,0.2092122882604599,0.3452380952380952,0.0,CPU tree-ensemble reference forecast.,,
+current_residual_corrected,0.694348156452179,3.100191116333008,-0.0008788941195234,0.3571428571428571,-0.7060175179553856,Existing CPU residual correction artifact.,,
+raw_gpu_residual_corrected,0.6518880128860474,3.078413963317871,-0.792443573474884,0.496031746031746,5.452264781855465,CUDA-backed PyTorch residual corrector before guardrails.,,
+guarded_gpu_residual_corrected,0.6707238636711308,3.0056124146904364,0.001223961829365,0.4007936507936508,2.7203737247516826,Guarded GPU residual correction using residual clipping and correction-strength scaling.,0.2,0.95

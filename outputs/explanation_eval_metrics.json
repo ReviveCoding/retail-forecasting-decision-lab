@@ -1,0 +1,10 @@
+{
+  "n_explanations": 30,
+  "n_negative_controls": 5,
+  "numeric_consistency_rate": 0.8333333333333334,
+  "driver_direction_correctness_rate": 0.8333333333333334,
+  "uncertainty_disclosure_rate": 0.8333333333333334,
+  "unsupported_claim_rate": 0.16666666666666666,
+  "negative_control_detection_rate": 1.0,
+  "mean_groundedness_score": 0.8333333333333334
+}

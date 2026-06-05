@@ -1,0 +1,21 @@
+{
+  "n_rows": 25200,
+  "n_series": 60,
+  "missing_required_columns": [],
+  "duplicate_item_store_date_keys": 0,
+  "date_gap_count": 0,
+  "null_counts_required": {
+    "item_id": 0,
+    "dept_id": 0,
+    "cat_id": 0,
+    "store_id": 0,
+    "state_id": 0,
+    "demand": 0,
+    "date": 0,
+    "sell_price": 0,
+    "event_flag": 0,
+    "snap_flag": 0,
+    "item_store_id": 0
+  },
+  "schema_pass": true
+}

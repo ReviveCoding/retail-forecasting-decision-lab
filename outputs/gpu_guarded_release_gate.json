@@ -1,0 +1,29 @@
+{
+  "decision": "ITERATE",
+  "primary_metric": "wape",
+  "control_forecast": "tree_ensemble",
+  "treatment_forecast": "release_safe_gpu_residual",
+  "control_policy": "tree_ensemble_policy",
+  "treatment_policy": "release_safe_gpu_residual_policy",
+  "wape_relative_improvement": -0.013341366213572646,
+  "under_forecast_relative_improvement": 0.029982363315696706,
+  "stockout_delta_treatment_minus_control": -0.0017857142857142932,
+  "overstock_relative_worsening": 0.01799992792041968,
+  "total_cost_relative_worsening": 0.008112513649977785,
+  "worst_slice_wape_relative_worsening": 0.00934773847949565,
+  "ab_stockout_ci_stable_improvement": false,
+  "guardrails": {
+    "wape_improved": "fail",
+    "under_forecast_improved": "pass",
+    "stockout_not_worse": "pass",
+    "overstock_guardrail_observed": "pass",
+    "total_cost_guardrail_observed": "pass",
+    "worst_slice_wape_guardrail_observed": "pass",
+    "ab_ci_stable_if_required": "pass"
+  },
+  "notes": [
+    "Offline public-data decision gate. Not a production Amazon release decision.",
+    "Inventory and lead-time impacts use synthetic/proxy overlays.",
+    "Forecast accuracy guardrails and policy/business guardrails are evaluated separately."
+  ]
+}

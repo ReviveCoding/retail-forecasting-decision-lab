@@ -1,0 +1,9 @@
+[project]
+name = "retail-forecasting-lab"
+version = "0.1.0"
+description = "Local-runnable retail demand forecasting, bias correction, business-impact measurement, and explanation grounding framework."
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

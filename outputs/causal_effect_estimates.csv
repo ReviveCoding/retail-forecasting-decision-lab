@@ -1,0 +1,2 @@
+analysis,treatment,outcome,treated_n,control_n,estimate,ci_low,ci_high,note
+observational_event_readout,event_flag,forecast_residual_actual_minus_prediction,240,1440,0.08784888874874291,-0.2513364692014144,0.5168722524940533,observational readout only; not randomized causal proof

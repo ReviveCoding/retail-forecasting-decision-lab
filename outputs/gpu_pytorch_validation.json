@@ -1,0 +1,9 @@
+{
+  "torch_version": "2.11.0+cu128",
+  "cuda_available": true,
+  "torch_cuda_version": "12.8",
+  "device_name": "NVIDIA GeForce RTX 4090 Laptop GPU",
+  "smoke_test_device": "cuda",
+  "matmul_elapsed_sec": 0.06238,
+  "matmul_mean": -0.021727101877331734
+}

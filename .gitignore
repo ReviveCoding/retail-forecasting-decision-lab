@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.env
+.DS_Store
+*.zip
+*.7z
+*.gz
+data/raw/
+data/interim/
+data/processed/
