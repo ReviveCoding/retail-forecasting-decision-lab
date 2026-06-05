@@ -15,9 +15,9 @@ This integrated stage trains a CUDA-backed PyTorch residual model without using 
 
 | model                          | device   |   n_test |     wape |    rmse |   mean_bias |   under_forecast_rate |   train_seconds |   inference_seconds |
 |:-------------------------------|:---------|---------:|---------:|--------:|------------:|----------------------:|----------------:|--------------------:|
-| gpu_base_tree                  | cpu      |     1680 | 0.754965 | 2.80524 |   0.141518  |              0.357738 |          0      |             0       |
-| raw_gpu_residual_corrected     | cuda     |     1680 | 0.743067 | 3.04435 |  -1.11039   |              0.520238 |          0.9712 |             0.00079 |
-| guarded_gpu_residual_corrected | cuda     |     1680 | 0.734004 | 2.8008  |  -0.0810581 |              0.414881 |          0.9712 |             0.00079 |
+| gpu_base_tree                  | cpu      |     1680 | 0.754965 | 2.80524 |   0.141518  |              0.357738 |          0      |            0        |
+| raw_gpu_residual_corrected     | cuda     |     1680 | 0.743067 | 3.04435 |  -1.11039   |              0.520238 |          1.5357 |            0.001153 |
+| guarded_gpu_residual_corrected | cuda     |     1680 | 0.734004 | 2.8008  |  -0.0810581 |              0.414881 |          1.5357 |            0.001153 |
 
 ## Selected guard
 

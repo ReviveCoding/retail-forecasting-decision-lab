@@ -10,3 +10,10 @@ __pycache__/
 data/raw/
 data/interim/
 data/processed/
+
+# Local backups and temporary patch files
+*.bak*
+pipeline_patch_context.txt
+scripts/patch_*.py
+__pycache__/
+.pytest_cache/
