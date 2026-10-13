@@ -20,7 +20,7 @@ This is **not** an Amazon production system, does **not** use Amazon internal da
 
 The core runnable path uses the M5 Forecasting Accuracy dataset ZIP. The default config expects `/mnt/data/m5-forecasting-accuracy.zip`. Edit `configs/pipeline.yaml` for your local path.
 
-## What changed in v3
+## Model and evaluation updates
 
 This version removes the main structural inefficiencies from the earlier MVP:
 
@@ -114,10 +114,6 @@ M5 raw data
 
 Favorita and Instacart adapters live under `extensions/optional_data_adapters/`. They are intentionally not imported by the core M5 pipeline until their schemas are mapped into the canonical panel.
 
-## Resume-safe summary
-
-Built a local-runnable public-data retail demand forecasting framework using M5 sales data, temporal holdouts, lag/rolling/calendar/price/hierarchy features, Demand-State Timestep features, residual forecast bias correction, synthetic inventory/lead-time simulation, offline A/B-style measurement, release gates, and forecast explanation grounding checks.
-
 ## Optional GPU residual-correction extension
 
 The core pipeline remains CPU-runnable. An optional CUDA-backed PyTorch extension validates GPU training and inference on an NVIDIA RTX 4090 Laptop GPU and evaluates a residual-correction model on generated forecast artifacts.
@@ -140,7 +136,6 @@ Current exploratory GPU result:
 The raw GPU residual corrector maximized WAPE improvement but shifted bias negatively. The guarded variant used residual clipping and correction-strength scaling to retain WAPE improvement while stabilizing mean bias.
 
 Claim boundary: this is an optional GPU specialty experiment built on generated forecast artifacts. Production-style claims should come from integrating the guarded GPU residual corrector directly into the main leakage-safe train/validation/test pipeline.
-
 
 ## Model selection frontier
 
