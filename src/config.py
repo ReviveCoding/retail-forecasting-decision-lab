@@ -5,18 +5,20 @@ from src.utils import load_yaml
 
 
 def _merge_dict(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
-    out = dict(base)
-    for k, v in override.items():
-        if isinstance(v, dict) and isinstance(out.get(k), dict):
-            out[k] = _merge_dict(out[k], v)
+    """Recursively merge nested mappings without mutating the defaults."""
+    merged = dict(base)
+    for key, value in override.items():
+        existing = merged.get(key)
+        if isinstance(value, dict) and isinstance(existing, dict):
+            merged[key] = _merge_dict(existing, value)
         else:
-            out[k] = v
-    return out
+            merged[key] = value
+    return merged
 
 
 def _legacy_to_nested(cfg: dict[str, Any]) -> dict[str, Any]:
     """Support the older flat configs/data.yaml format for local users."""
-    if any(k in cfg for k in ["data", "model", "inventory", "experiment", "release_gate"]):
+    if any(section in cfg for section in ("data", "model", "inventory", "experiment", "release_gate")):
         return cfg
     return {
         "data": {
