@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 from pathlib import Path
 from typing import Any
 from src.utils import load_yaml
@@ -22,7 +23,7 @@ def _legacy_to_nested(cfg: dict[str, Any]) -> dict[str, Any]:
         return cfg
     return {
         "data": {
-            "m5_zip_path": cfg.get("m5_zip_path", "/mnt/data/m5-forecasting-accuracy.zip"),
+            "m5_zip_path": cfg.get("m5_zip_path", "data/raw/m5-forecasting-accuracy.zip"),
             "sample_mode": cfg.get("sample_mode", True),
             "n_items": cfg.get("n_items", 30),
             "n_stores": cfg.get("n_stores", 2),
@@ -44,4 +45,8 @@ def load_pipeline_config(path: str | Path) -> dict[str, Any]:
     cfg = _legacy_to_nested(load_yaml(path))
     defaults = load_yaml(Path("configs/pipeline.yaml")) if Path("configs/pipeline.yaml").exists() else {}
     defaults = _legacy_to_nested(defaults) if defaults else {}
-    return _merge_dict(defaults, cfg) if defaults else cfg
+    merged = _merge_dict(defaults, cfg) if defaults else cfg
+    m5_override = os.environ.get("M5_DATA_PATH", "").strip()
+    if m5_override:
+        merged.setdefault("data", {})["m5_path"] = m5_override
+    return merged

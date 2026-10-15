@@ -18,7 +18,7 @@ This is **not** an Amazon production system, does **not** use Amazon internal da
 
 ## Core dataset
 
-The core runnable path uses the M5 Forecasting Accuracy dataset ZIP. The default config expects `/mnt/data/m5-forecasting-accuracy.zip`. Edit `configs/pipeline.yaml` for your local path.
+The core pipeline requires the M5 Forecasting Accuracy data as a ZIP archive or extracted directory. The default configuration looks for `data/raw/m5-forecasting-accuracy.zip` relative to the repository root. Set the `M5_DATA_PATH` environment variable to use a different ZIP or extracted directory without editing the tracked configuration. You can also supply a custom `--config` YAML file. Dataset files are not bundled with this repository.
 
 ## Model and evaluation updates
 
