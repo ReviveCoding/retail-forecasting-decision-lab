@@ -32,6 +32,6 @@ def test_dataset_environment_override(monkeypatch, tmp_path):
 def test_custom_yaml_path_wins_without_environment_override(monkeypatch, tmp_path):
     monkeypatch.delenv("M5_DATA_PATH", raising=False)
     custom = tmp_path / "custom.yaml"
-    custom.write_text("data:\\n  m5_path: data/custom/m5.zip\\n", encoding="utf-8")
+    custom.write_text("data:\n  m5_path: data/custom/m5.zip\n", encoding="utf-8")
     cfg = load_pipeline_config(custom)
     assert cfg["data"]["m5_path"] == "data/custom/m5.zip"
