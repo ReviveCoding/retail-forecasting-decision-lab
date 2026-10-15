@@ -21,7 +21,7 @@ from src.models.torch_guarded_residual_corrector import apply_guarded_gpu_residu
 from src.evaluation.forecast_metrics import evaluate_forecasts
 from src.evaluation.bias_metrics import evaluate_bias_by_slice
 from src.simulation.inventory_policy import simulate_inventory_policies
-from src.experiments.ab_style_measurement import build_ab_style_readout
+from src.experiments.ab_style_measurement import build_ab_style_readout, build_gpu_ab_style_readout
 from src.experiments.causal_event_study import lightweight_event_residual_readout
 from src.explainability.explanation_generator import generate_explanations
 from src.explainability.grounding_evaluator import evaluate_explanation_grounding
@@ -186,54 +186,8 @@ def main():
         unit_type=exp_cfg.get('unit_type', 'item-store-week'),
     )
     write_table(ab, out_dir / 'ab_test_summary.csv')
-    ab_gpu = None
-    if ("learned_abc_release_safe_policy" in inv_pred_cols) or ("learned_abc_gpu_residual_policy" in inv_pred_cols) or ("release_safe_gpu_residual_policy" in inv_pred_cols) or ("guarded_gpu_residual_policy" in inv_pred_cols):
-        import inspect
-        _ab_params = inspect.signature(build_ab_style_readout).parameters
-        _ab_seed = exp_cfg.get("random_seed", seed)
-        _ab_unit_type = exp_cfg.get("unit_type", "item-store-week")
-        _control = "tree_ensemble_policy"
-        _treatment = "learned_abc_release_safe_policy" if "learned_abc_release_safe_policy" in inv_pred_cols else ("learned_abc_gpu_residual_policy" if "learned_abc_gpu_residual_policy" in inv_pred_cols else ("release_safe_gpu_residual_policy" if "release_safe_gpu_residual_policy" in inv_pred_cols else "guarded_gpu_residual_policy"))
-        if ("control_policy" in _ab_params) and ("treatment_policy" in _ab_params):
-            ab_gpu = build_ab_style_readout(
-                inv_detail,
-                control_policy=_control,
-                treatment_policy=_treatment,
-                seed=_ab_seed,
-                unit_type=_ab_unit_type,
-            )
-        elif ("control" in _ab_params) and ("treatment" in _ab_params):
-            ab_gpu = build_ab_style_readout(
-                inv_detail,
-                control=_control,
-                treatment=_treatment,
-                seed=_ab_seed,
-                unit_type=_ab_unit_type,
-            )
-        elif ("control_model" in _ab_params) and ("treatment_model" in _ab_params):
-            ab_gpu = build_ab_style_readout(
-                inv_detail,
-                control_model=_control,
-                treatment_model=_treatment,
-                seed=_ab_seed,
-                unit_type=_ab_unit_type,
-            )
-        elif ("control_policy_name" in _ab_params) and ("treatment_policy_name" in _ab_params):
-            ab_gpu = build_ab_style_readout(
-                inv_detail,
-                control_policy_name=_control,
-                treatment_policy_name=_treatment,
-                seed=_ab_seed,
-                unit_type=_ab_unit_type,
-            )
-        else:
-            ab_gpu = build_ab_style_readout(
-                inv_detail,
-                _control,
-                _treatment,
-                seed=_ab_seed,
-                unit_type=_ab_unit_type,
-            )
+    ab_gpu = build_gpu_ab_style_readout(inv_detail, inv_pred_cols, exp_cfg, seed)
+    if ab_gpu is not None:
         write_table(ab_gpu, out_dir / "ab_test_gpu_guarded_summary.csv")
 
     causal = lightweight_event_residual_readout(test, pred_col='pred_tree', seed=seed)
