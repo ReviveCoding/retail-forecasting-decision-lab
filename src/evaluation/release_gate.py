@@ -1,8 +1,12 @@
 from __future__ import annotations
+from math import isfinite
+
 import pandas as pd
 
 
 def _metric(metrics_df, model, name):
+    if metrics_df is None or metrics_df.empty or 'model_name' not in metrics_df.columns:
+        return None
     row = metrics_df[metrics_df['model_name'] == model]
     if row.empty or name not in row.columns:
         return None
@@ -18,6 +22,9 @@ def _safe_rel_improvement(control_value, treatment_value, lower_is_better=True):
 
 
 def _policy_metric(inventory_summary, policy, metric, lead_time=7, safety_stock_factor=0.5):
+    required = {'lead_time', 'safety_stock_factor', 'forecast_model', metric}
+    if inventory_summary is None or inventory_summary.empty or not required.issubset(inventory_summary.columns):
+        return None
     inv = inventory_summary[
         (inventory_summary['lead_time'] == lead_time) &
         (inventory_summary['safety_stock_factor'] == safety_stock_factor)
@@ -103,7 +110,15 @@ def build_release_gate(
         'ab_ci_stable_if_required': (not require_ci) or ci_stable,
     }
 
-    if all(guardrails.values()) and wape_rel_improvement >= min_wape and under_rel_improvement >= min_under:
+    required_values = (
+        control_wape, treatment_wape, control_under, treatment_under,
+        c_stockout, t_stockout, c_overstock, t_overstock, c_cost, t_cost,
+    )
+    evidence_complete = all(value is not None and isfinite(value) for value in required_values)
+
+    if not evidence_complete:
+        decision = 'HOLD'
+    elif all(guardrails.values()) and wape_rel_improvement >= min_wape and under_rel_improvement >= min_under:
         decision = 'LAUNCH'
     elif not guardrails['stockout_not_worse'] or not guardrails['overstock_guardrail_observed'] or not guardrails['total_cost_guardrail_observed']:
         decision = 'BLOCK'
@@ -131,5 +146,7 @@ def build_release_gate(
             'Offline public-data decision gate. Not a production Amazon release decision.',
             'Inventory and lead-time impacts use synthetic/proxy overlays.',
             'Forecast accuracy guardrails and policy/business guardrails are evaluated separately.',
-        ],
+        ] + ([] if evidence_complete else [
+            'Release HOLD: required forecast or inventory policy metrics are missing or non-finite.'
+        ]),
     }
