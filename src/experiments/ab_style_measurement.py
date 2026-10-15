@@ -1,4 +1,7 @@
 from __future__ import annotations
+from collections.abc import Collection, Mapping
+from typing import Any
+
 import pandas as pd
 from .bootstrap_ci import cluster_bootstrap_mean_ci
 from .mde_power import approximate_mde
@@ -70,3 +73,42 @@ def build_ab_style_readout(
             'decision_hint': 'stable' if (ci_low > 0 or ci_high < 0) else 'uncertain',
         })
     return pd.DataFrame(rows)
+
+def build_gpu_ab_style_readout(
+    detail: pd.DataFrame,
+    available_policies: Collection[str],
+    experiment: Mapping[str, Any],
+    seed: int,
+) -> pd.DataFrame | None:
+    """Compare the highest-priority available GPU policy using the same experiment settings.
+
+    Policy priority is explicit to keep comparisons stable across runs. In
+    particular, use the configured lead time, stock factor, and bootstrap
+    budget instead of relying on the default values of the base readout.
+    """
+    treatment = next(
+        (
+            policy
+            for policy in (
+                "learned_abc_release_safe_policy",
+                "learned_abc_gpu_residual_policy",
+                "release_safe_gpu_residual_policy",
+                "guarded_gpu_residual_policy",
+            )
+            if policy in available_policies
+        ),
+        None,
+    )
+    if treatment is None:
+        return None
+
+    return build_ab_style_readout(
+        detail,
+        control="tree_ensemble_policy",
+        treatment=treatment,
+        lead_time=experiment.get("lead_time", 7),
+        safety_stock_factor=experiment.get("safety_stock_factor", 0.5),
+        n_bootstrap=experiment.get("n_bootstrap", 200),
+        seed=experiment.get("random_seed", seed),
+        unit_type=experiment.get("unit_type", "item-store-week"),
+    )
