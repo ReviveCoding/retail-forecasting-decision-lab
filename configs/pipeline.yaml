@@ -2,7 +2,7 @@ project:
   name: "Retail Forecasting Decision Lab"
 
 data:
-  m5_path: "C:/Users/bjw-0/Downloads/Mini Project_Data/m5-forecasting-accuracy"
+  m5_path: "data/raw/m5-forecasting-accuracy.zip"
   m5_format: "auto"
   sample_mode: true
   n_items: 30
@@ -37,19 +37,19 @@ release_gate:
 
 extensions:
   enable_favorita: false
-  favorita_path: "C:/Users/bjw-0/Downloads/Mini Project_Data/Corporación Favorita Grocery Sales Forecasting"
+  favorita_path: "data/external/favorita"
 
   enable_rossmann: false
-  rossmann_path: "C:/Users/bjw-0/Downloads/Mini Project_Data/Rossmann Store Sales"
+  rossmann_path: "data/external/rossmann"
 
   enable_olist: false
-  olist_path: "C:/Users/bjw-0/Downloads/Mini Project_Data/Brazilian E-Commerce Public Dataset by Olist"
+  olist_path: "data/external/olist"
 
   enable_instacart: false
-  instacart_path: "C:/Users/bjw-0/Downloads/Mini Project_Data/Instacart Market Basket Analysis"
+  instacart_path: "data/external/instacart"
 
   enable_online_retail_ii: false
-  online_retail_ii_path: "C:/Users/bjw-0/Downloads/Mini Project_Data/UCI Online Retail  Online Retail II_online+retail+ii"
+  online_retail_ii_path: "data/external/online_retail_ii"
 
 gpu_residual:
   enabled: true
