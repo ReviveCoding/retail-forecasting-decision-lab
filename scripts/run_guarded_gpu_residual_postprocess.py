@@ -1,6 +1,7 @@
-﻿from pathlib import Path
-import pandas as pd
+from pathlib import Path
+
 import numpy as np
+import pandas as pd
 
 
 def wape(y_true, y_pred):
@@ -36,7 +37,11 @@ raw_residual = df["torch_predicted_residual"].to_numpy(dtype=float)
 rows = [
     row("tree_ensemble", y, pred_tree),
     row("current_residual_corrected", y, pred_current),
-    row("torch_gpu_residual_corrected_raw", y, df["pred_torch_gpu_residual_corrected"].to_numpy(dtype=float)),
+    row(
+        "torch_gpu_residual_corrected_raw",
+        y,
+        df["pred_torch_gpu_residual_corrected"].to_numpy(dtype=float),
+    ),
 ]
 
 # Guarded post-processing grid.
@@ -83,7 +88,11 @@ else:
         + result["under_forecast_rate"].rank()
         + result["mean_bias"].abs().rank()
     )
-    selected = result[result["model"].str.startswith("guarded_torch")].sort_values("score").iloc[0]
+    selected = (
+        result[result["model"].str.startswith("guarded_torch")]
+        .sort_values("score")
+        .iloc[0]
+    )
 
 out_dir = Path("outputs")
 rep_dir = Path("reports")
@@ -91,7 +100,9 @@ out_dir.mkdir(exist_ok=True)
 rep_dir.mkdir(exist_ok=True)
 
 result.to_csv(out_dir / "guarded_gpu_residual_policy_grid.csv", index=False)
-pd.DataFrame([selected]).to_csv(out_dir / "selected_guarded_gpu_residual_policy.csv", index=False)
+pd.DataFrame([selected]).to_csv(
+    out_dir / "selected_guarded_gpu_residual_policy.csv", index=False
+)
 
 report = [
     "# Guarded GPU Residual Correction Report",
@@ -102,11 +113,15 @@ report = [
     "",
     "## Baselines and raw GPU correction",
     "",
-    result[result["model"].isin([
-        "tree_ensemble",
-        "current_residual_corrected",
-        "torch_gpu_residual_corrected_raw",
-    ])].to_markdown(index=False),
+    result[
+        result["model"].isin(
+            [
+                "tree_ensemble",
+                "current_residual_corrected",
+                "torch_gpu_residual_corrected_raw",
+            ]
+        )
+    ].to_markdown(index=False),
     "",
     "## Selected guarded candidate",
     "",
@@ -121,7 +136,9 @@ report = [
     "This is still a post-hoc smoke experiment on generated artifacts. Resume-safe final claims should come from integrating guarded correction into the main train/validation/test pipeline.",
 ]
 
-(rep_dir / "guarded_gpu_residual_correction_report.md").write_text("\n".join(report), encoding="utf-8")
+(rep_dir / "guarded_gpu_residual_correction_report.md").write_text(
+    "\n".join(report), encoding="utf-8"
+)
 
 print("Wrote outputs/guarded_gpu_residual_policy_grid.csv")
 print("Wrote outputs/selected_guarded_gpu_residual_policy.csv")

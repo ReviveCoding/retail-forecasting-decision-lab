@@ -1,6 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
@@ -35,7 +36,9 @@ def demand_coverage_metrics(df: pd.DataFrame, pred_col: str) -> dict:
     coverage_recall = float(covered.sum() / actual_sum)
     order_precision = float(covered.sum() / pred_sum)
     coverage_f1 = float(
-        2.0 * coverage_recall * order_precision
+        2.0
+        * coverage_recall
+        * order_precision
         / max(coverage_recall + order_precision, 1e-9)
     )
 
@@ -77,14 +80,14 @@ def main() -> None:
     tree = metrics.loc[metrics["candidate"].eq("pred_tree")]
     if not tree.empty:
         tree_row = tree.iloc[0]
-        metrics["coverage_recall_delta_vs_tree"] = (
-            metrics["demand_coverage_recall"] - float(tree_row["demand_coverage_recall"])
+        metrics["coverage_recall_delta_vs_tree"] = metrics[
+            "demand_coverage_recall"
+        ] - float(tree_row["demand_coverage_recall"])
+        metrics["order_precision_delta_vs_tree"] = metrics["order_precision"] - float(
+            tree_row["order_precision"]
         )
-        metrics["order_precision_delta_vs_tree"] = (
-            metrics["order_precision"] - float(tree_row["order_precision"])
-        )
-        metrics["coverage_f1_delta_vs_tree"] = (
-            metrics["demand_coverage_f1"] - float(tree_row["demand_coverage_f1"])
+        metrics["coverage_f1_delta_vs_tree"] = metrics["demand_coverage_f1"] - float(
+            tree_row["demand_coverage_f1"]
         )
         metrics["wape_delta_vs_tree"] = metrics["wape"] - float(tree_row["wape"])
 
@@ -95,7 +98,9 @@ def main() -> None:
 
     metrics.to_csv(OUT / "demand_coverage_metrics.csv", index=False)
 
-    slice_cols = [c for c in ["cat_id", "dept_id", "store_id", "state_id"] if c in df.columns]
+    slice_cols = [
+        c for c in ["cat_id", "dept_id", "store_id", "state_id"] if c in df.columns
+    ]
     slice_rows = []
 
     for pred_col in available:

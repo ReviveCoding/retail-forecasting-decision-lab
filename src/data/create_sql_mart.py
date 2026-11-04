@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from pathlib import Path
+
 import pandas as pd
 
 
@@ -14,8 +16,17 @@ def create_sql_mart(panel: pd.DataFrame, output_dir: str | Path) -> dict[str, st
     output_dir.mkdir(parents=True, exist_ok=True)
 
     demand_cols = [
-        "item_store_id", "item_id", "store_id", "dept_id", "cat_id", "state_id",
-        "date", "demand", "sell_price", "event_flag", "snap_flag",
+        "item_store_id",
+        "item_id",
+        "store_id",
+        "dept_id",
+        "cat_id",
+        "state_id",
+        "date",
+        "demand",
+        "sell_price",
+        "event_flag",
+        "snap_flag",
     ]
     demand_mart = panel[[c for c in demand_cols if c in panel.columns]].copy()
     demand_path = output_dir / "demand_mart.csv"

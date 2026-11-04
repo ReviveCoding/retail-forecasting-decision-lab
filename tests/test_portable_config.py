@@ -4,7 +4,6 @@ from pathlib import Path
 
 from src.config import load_pipeline_config
 
-
 DEFAULT_CONFIG = Path(__file__).resolve().parents[1] / "configs" / "pipeline.yaml"
 
 

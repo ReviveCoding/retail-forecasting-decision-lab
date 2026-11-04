@@ -1,6 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
@@ -36,7 +37,9 @@ def add_under_risk_score(guard: pd.DataFrame, apply: pd.DataFrame) -> np.ndarray
         ("snap_flag", 0.075),
     ]:
         if col in apply.columns:
-            parts.append(weight * apply[col].fillna(0).astype(float).clip(0, 1).to_numpy())
+            parts.append(
+                weight * apply[col].fillna(0).astype(float).clip(0, 1).to_numpy()
+            )
 
     if not parts:
         return np.ones(len(apply), dtype=float)
@@ -149,7 +152,7 @@ def main() -> None:
         for risk_power in [0.5, 1.0, 2.0]:
             for q in [0.0, 0.25, 0.50, 0.75]:
                 threshold = float(np.quantile(guard_risk, q))
-                weight = np.where(guard_risk >= threshold, guard_risk ** risk_power, 0.0)
+                weight = np.where(guard_risk >= threshold, guard_risk**risk_power, 0.0)
                 pred = guard_base + float(alpha) * weight * guard_gap
                 row = metrics(guard, pred, "abc_guard_grid")
                 row["alpha"] = float(alpha)
@@ -166,7 +169,7 @@ def main() -> None:
     q = float(selected["risk_quantile_gate"])
     threshold = float(selected["risk_threshold"])
 
-    eval_weight = np.where(eval_risk >= threshold, eval_risk ** risk_power, 0.0)
+    eval_weight = np.where(eval_risk >= threshold, eval_risk**risk_power, 0.0)
     eval_pred = eval_base + alpha * eval_weight * eval_gap
 
     eval_rows = [

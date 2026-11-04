@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import time
@@ -18,11 +18,13 @@ except ImportError:
     DataLoader = None
     TensorDataset = None
 
-from src.models.tree_forecaster import train_forecaster, predict_forecaster
+from src.models.tree_forecaster import predict_forecaster, train_forecaster
 
 
 class ResidualMLP(nn.Module):
-    def __init__(self, n_features: int, hidden_dims=(128, 64), dropout: float = 0.10) -> None:
+    def __init__(
+        self, n_features: int, hidden_dims=(128, 64), dropout: float = 0.10
+    ) -> None:
         super().__init__()
         layers = []
         prev = n_features
@@ -47,7 +49,9 @@ def _rmse(y_true, y_pred) -> float:
     return float(np.sqrt(np.mean((y_true - y_pred) ** 2)))
 
 
-def _metric_row(name, y_true, y_pred, device="cpu", train_seconds=0.0, inference_seconds=0.0):
+def _metric_row(
+    name, y_true, y_pred, device="cpu", train_seconds=0.0, inference_seconds=0.0
+):
     return {
         "model": name,
         "device": device,
@@ -75,15 +79,16 @@ def _choose_numeric_features(df: pd.DataFrame) -> list[str]:
         "pred_p90",
     }
     cols = [
-        c for c in df.select_dtypes(include=[np.number]).columns
+        c
+        for c in df.select_dtypes(include=[np.number]).columns
         if c not in exclude and not c.lower().startswith("pred_")
     ]
     cols = [
-        c for c in cols
+        c
+        for c in cols
         if df[c].notna().mean() > 0.80 and df[c].nunique(dropna=True) > 1
     ]
     return cols
-
 
 
 def _coverage_metric_row(name, y_true, y_pred, device="cpu"):
@@ -133,7 +138,9 @@ def apply_guarded_gpu_residual_stage(
         return {"test": test, "enabled": False}
 
     if torch is None:
-        raise ImportError("PyTorch is required for gpu_residual.enabled=true. Install requirements-gpu.txt first.")
+        raise ImportError(
+            "PyTorch is required for gpu_residual.enabled=true. Install requirements-gpu.txt first."
+        )
 
     out_dir.mkdir(exist_ok=True)
     rep_dir.mkdir(exist_ok=True)
@@ -141,7 +148,9 @@ def apply_guarded_gpu_residual_stage(
     split_cfg = gpu_cfg.get("split", {})
     train_base_end = float(split_cfg.get("train_base_end", 0.60))
     residual_fit_end = float(split_cfg.get("residual_fit_end", 0.75))
-    train_base_fraction = min(max(train_base_end / max(residual_fit_end, 1e-9), 0.50), 0.95)
+    train_base_fraction = min(
+        max(train_base_end / max(residual_fit_end, 1e-9), 0.50), 0.95
+    )
 
     train_sorted = train.sort_values(["date", "item_store_id"]).reset_index(drop=True)
     cut = int(len(train_sorted) * train_base_fraction)
@@ -167,10 +176,16 @@ def apply_guarded_gpu_residual_stage(
     feature_cols = list(dict.fromkeys(feature_cols + ["pred_gpu_base_tree"]))
 
     required = list(dict.fromkeys(feature_cols + ["demand"]))
-    residual_fit_data = residual_fit[required].replace([np.inf, -np.inf], np.nan).dropna()
+    residual_fit_data = (
+        residual_fit[required].replace([np.inf, -np.inf], np.nan).dropna()
+    )
     guard_data = guard_val[required].replace([np.inf, -np.inf], np.nan).dropna()
     test_data = test_out[required].replace([np.inf, -np.inf], np.nan).dropna()
-    for name, data_frame in [("residual_fit_data", residual_fit_data), ("guard_data", guard_data), ("test_data", test_data)]:
+    for name, data_frame in [
+        ("residual_fit_data", residual_fit_data),
+        ("guard_data", guard_data),
+        ("test_data", test_data),
+    ]:
         if data_frame.columns.duplicated().any():
             dupes = data_frame.columns[data_frame.columns.duplicated()].tolist()
             raise ValueError(f"Duplicate columns in {name}: {dupes}")
@@ -201,7 +216,9 @@ def apply_guarded_gpu_residual_stage(
     X_test = (X_test - mean) / std
 
     requested_device = str(gpu_cfg.get("device", "cuda"))
-    device = "cuda" if requested_device == "cuda" and torch.cuda.is_available() else "cpu"
+    device = (
+        "cuda" if requested_device == "cuda" and torch.cuda.is_available() else "cpu"
+    )
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -250,7 +267,9 @@ def apply_guarded_gpu_residual_stage(
         guard_wape = _wape(y_guard, guard_pred)
         if guard_wape < best_guard_wape:
             best_guard_wape = guard_wape
-            best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+            best_state = {
+                k: v.detach().cpu().clone() for k, v in model.state_dict().items()
+            }
 
     train_seconds = time.time() - start_train
     if best_state is not None:
@@ -270,13 +289,19 @@ def apply_guarded_gpu_residual_stage(
         inference_seconds = time.time() - start_infer
 
     guard_cfg = gpu_cfg.get("guard", {})
-    lambda_grid = guard_cfg.get("lambda_grid", [0.10, 0.20, 0.30, 0.40, 0.50, 0.75, 1.00])
+    lambda_grid = guard_cfg.get(
+        "lambda_grid", [0.10, 0.20, 0.30, 0.40, 0.50, 0.75, 1.00]
+    )
     clip_grid = guard_cfg.get("clip_quantile_grid", [0.80, 0.90, 0.95])
 
     grid_rows = []
-    base_guard_metrics = _metric_row("gpu_base_tree_guard", y_guard, base_guard, device="cpu")
+    base_guard_metrics = _metric_row(
+        "gpu_base_tree_guard", y_guard, base_guard, device="cpu"
+    )
     raw_guard_pred = np.clip(base_guard + raw_guard, 0.0, None)
-    raw_guard_metrics = _metric_row("raw_gpu_residual_guard", y_guard, raw_guard_pred, device=device)
+    raw_guard_metrics = _metric_row(
+        "raw_gpu_residual_guard", y_guard, raw_guard_pred, device=device
+    )
 
     for lam in lambda_grid:
         for q in clip_grid:
@@ -286,17 +311,28 @@ def apply_guarded_gpu_residual_stage(
             hi = float(np.quantile(raw_guard, q))
             clipped_guard = np.clip(raw_guard, lo, hi)
             pred_guard = np.clip(base_guard + lam * clipped_guard, 0.0, None)
-            row = _metric_row(f"guarded_gpu_lambda_{lam}_q_{q}", y_guard, pred_guard, device=device)
-            row.update({"lambda": lam, "clip_quantile": q, "clip_low": lo, "clip_high": hi})
+            row = _metric_row(
+                f"guarded_gpu_lambda_{lam}_q_{q}", y_guard, pred_guard, device=device
+            )
+            row.update(
+                {"lambda": lam, "clip_quantile": q, "clip_low": lo, "clip_high": hi}
+            )
             grid_rows.append(row)
 
     grid = pd.DataFrame(grid_rows)
     base_wape = float(base_guard_metrics["wape"])
     raw_bias_abs = abs(float(raw_guard_metrics["mean_bias"]))
-    candidates = grid[(grid["wape"] < base_wape) & (grid["mean_bias"].abs() <= max(raw_bias_abs, 1e-9))].copy()
+    candidates = grid[
+        (grid["wape"] < base_wape)
+        & (grid["mean_bias"].abs() <= max(raw_bias_abs, 1e-9))
+    ].copy()
     if candidates.empty:
         candidates = grid.copy()
-    candidates["score"] = candidates["wape"].rank() + candidates["mean_bias"].abs().rank() + candidates["under_forecast_rate"].rank()
+    candidates["score"] = (
+        candidates["wape"].rank()
+        + candidates["mean_bias"].abs().rank()
+        + candidates["under_forecast_rate"].rank()
+    )
     selected = candidates.sort_values("score").iloc[0]
     selected_dict = _to_builtin_dict(selected.to_dict())
 
@@ -304,7 +340,9 @@ def apply_guarded_gpu_residual_stage(
     clip_high = float(selected_dict["clip_high"])
     lam = float(selected_dict["lambda"])
     pred_raw_test = np.clip(base_test + raw_test, 0.0, None)
-    pred_guarded_test = np.clip(base_test + lam * np.clip(raw_test, clip_low, clip_high), 0.0, None)
+    pred_guarded_test = np.clip(
+        base_test + lam * np.clip(raw_test, clip_low, clip_high), 0.0, None
+    )
 
     # Learned ABC-style asymmetric under/over coverage correction.
     # Fit under/over models only on residual_fit, select alpha/beta/cap on guard_val,
@@ -313,8 +351,12 @@ def apply_guarded_gpu_residual_stage(
         xf = torch.tensor(X_fit, dtype=torch.float32, device=device)
         raw_fit = model(xf).detach().cpu().numpy()
 
-    pred_guarded_fit = np.clip(base_fit + lam * np.clip(raw_fit, clip_low, clip_high), 0.0, None)
-    pred_guarded_guard = np.clip(base_guard + lam * np.clip(raw_guard, clip_low, clip_high), 0.0, None)
+    pred_guarded_fit = np.clip(
+        base_fit + lam * np.clip(raw_fit, clip_low, clip_high), 0.0, None
+    )
+    pred_guarded_guard = np.clip(
+        base_guard + lam * np.clip(raw_guard, clip_low, clip_high), 0.0, None
+    )
 
     under_target_fit = np.maximum(y_fit - pred_guarded_fit, 0.0)
     over_target_fit = np.maximum(pred_guarded_fit - y_fit, 0.0)
@@ -343,8 +385,12 @@ def apply_guarded_gpu_residual_stage(
     test_over = np.clip(over_model.predict(X_test), 0.0, None)
 
     abc_rows = []
-    tree_guard_metric = _coverage_metric_row("gpu_base_tree_guard", y_guard, base_guard, device="cpu")
-    guarded_guard_metric = _coverage_metric_row("guarded_gpu_guard", y_guard, pred_guarded_guard, device=device)
+    tree_guard_metric = _coverage_metric_row(
+        "gpu_base_tree_guard", y_guard, base_guard, device="cpu"
+    )
+    guarded_guard_metric = _coverage_metric_row(
+        "guarded_gpu_guard", y_guard, pred_guarded_guard, device=device
+    )
 
     for abc_alpha in [0.0, 0.10, 0.20, 0.30, 0.40, 0.50, 0.75, 1.00]:
         for abc_beta in [0.0, 0.05, 0.10, 0.20, 0.30, 0.50]:
@@ -358,21 +404,31 @@ def apply_guarded_gpu_residual_stage(
                     0.0,
                     None,
                 )
-                row = _coverage_metric_row("learned_abc_guard_grid", y_guard, pred_abc_guard, device=device)
-                row.update({
-                    "alpha": float(abc_alpha),
-                    "beta": float(abc_beta),
-                    "cap_quantile": float(abc_cap_q),
-                    "under_cap": under_cap,
-                    "over_cap": over_cap,
-                })
+                row = _coverage_metric_row(
+                    "learned_abc_guard_grid", y_guard, pred_abc_guard, device=device
+                )
+                row.update(
+                    {
+                        "alpha": float(abc_alpha),
+                        "beta": float(abc_beta),
+                        "cap_quantile": float(abc_cap_q),
+                        "under_cap": under_cap,
+                        "over_cap": over_cap,
+                    }
+                )
                 abc_rows.append(row)
 
     abc_grid = pd.DataFrame(abc_rows)
     abc_candidates = abc_grid[
         (abc_grid["wape"] <= float(tree_guard_metric["wape"]))
-        & (abc_grid["under_forecast_rate"] <= float(guarded_guard_metric["under_forecast_rate"]))
-        & (abc_grid["demand_coverage_f1"] >= float(guarded_guard_metric["demand_coverage_f1"]))
+        & (
+            abc_grid["under_forecast_rate"]
+            <= float(guarded_guard_metric["under_forecast_rate"])
+        )
+        & (
+            abc_grid["demand_coverage_f1"]
+            >= float(guarded_guard_metric["demand_coverage_f1"])
+        )
     ].copy()
 
     if abc_candidates.empty:
@@ -407,56 +463,107 @@ def apply_guarded_gpu_residual_stage(
     valid_idx = test_data.index
     test_out.loc[valid_idx, "pred_gpu_residual_raw"] = pred_raw_test
     test_out.loc[valid_idx, "pred_guarded_gpu_residual"] = pred_guarded_test
-    test_out["pred_guarded_gpu_residual"] = test_out["pred_guarded_gpu_residual"].fillna(test_out["pred_gpu_base_tree"])
-    test_out["pred_gpu_residual_raw"] = test_out["pred_gpu_residual_raw"].fillna(test_out["pred_gpu_base_tree"])
+    test_out["pred_guarded_gpu_residual"] = test_out[
+        "pred_guarded_gpu_residual"
+    ].fillna(test_out["pred_gpu_base_tree"])
+    test_out["pred_gpu_residual_raw"] = test_out["pred_gpu_residual_raw"].fillna(
+        test_out["pred_gpu_base_tree"]
+    )
     # Forecast metric and ordering-policy signal are intentionally separated.
     # The guarded point forecast is used for WAPE evaluation.
     # The release-safe signal floors the GPU forecast at the tree forecast to reduce
     # under-forecast and stockout risk without using the test window for tuning.
     if "pred_tree" in test_out.columns:
-        test_out["pred_release_safe_gpu_residual"] = test_out[["pred_guarded_gpu_residual", "pred_tree"]].max(axis=1)
+        test_out["pred_release_safe_gpu_residual"] = test_out[
+            ["pred_guarded_gpu_residual", "pred_tree"]
+        ].max(axis=1)
     else:
-        test_out["pred_release_safe_gpu_residual"] = test_out[["pred_guarded_gpu_residual", "pred_gpu_base_tree"]].max(axis=1)
+        test_out["pred_release_safe_gpu_residual"] = test_out[
+            ["pred_guarded_gpu_residual", "pred_gpu_base_tree"]
+        ].max(axis=1)
 
     test_out["pred_learned_abc_gpu_residual"] = np.nan
     test_out.loc[valid_idx, "pred_learned_abc_gpu_residual"] = pred_learned_abc_test
-    test_out["pred_learned_abc_gpu_residual"] = test_out["pred_learned_abc_gpu_residual"].fillna(test_out["pred_release_safe_gpu_residual"])
+    test_out["pred_learned_abc_gpu_residual"] = test_out[
+        "pred_learned_abc_gpu_residual"
+    ].fillna(test_out["pred_release_safe_gpu_residual"])
 
-    test_out["order_signal_guarded_gpu_residual"] = test_out["pred_guarded_gpu_residual"]
-    test_out["order_signal_release_safe_gpu_residual"] = test_out["pred_release_safe_gpu_residual"]
-    test_out["order_signal_learned_abc_gpu_residual"] = test_out["pred_learned_abc_gpu_residual"]
+    test_out["order_signal_guarded_gpu_residual"] = test_out[
+        "pred_guarded_gpu_residual"
+    ]
+    test_out["order_signal_release_safe_gpu_residual"] = test_out[
+        "pred_release_safe_gpu_residual"
+    ]
+    test_out["order_signal_learned_abc_gpu_residual"] = test_out[
+        "pred_learned_abc_gpu_residual"
+    ]
 
     # Keep learned ABC as the point forecast, but use a floor for inventory release safety.
     if "pred_tree" in test_out.columns:
-        test_out["order_signal_learned_abc_release_safe"] = test_out[["pred_learned_abc_gpu_residual", "pred_tree"]].max(axis=1)
+        test_out["order_signal_learned_abc_release_safe"] = test_out[
+            ["pred_learned_abc_gpu_residual", "pred_tree"]
+        ].max(axis=1)
     else:
-        test_out["order_signal_learned_abc_release_safe"] = test_out[["pred_learned_abc_gpu_residual", "pred_gpu_base_tree"]].max(axis=1)
+        test_out["order_signal_learned_abc_release_safe"] = test_out[
+            ["pred_learned_abc_gpu_residual", "pred_gpu_base_tree"]
+        ].max(axis=1)
 
-    test_metrics = pd.DataFrame([
-        _metric_row("gpu_base_tree", y_test, base_test, device="cpu"),
-        _metric_row("raw_gpu_residual_corrected", y_test, pred_raw_test, device=device, train_seconds=train_seconds, inference_seconds=inference_seconds),
-        _metric_row("guarded_gpu_residual_corrected", y_test, pred_guarded_test, device=device, train_seconds=train_seconds, inference_seconds=inference_seconds),
-        _metric_row("learned_abc_gpu_residual_corrected", y_test, pred_learned_abc_test, device=device, train_seconds=train_seconds, inference_seconds=inference_seconds),
-    ])
+    test_metrics = pd.DataFrame(
+        [
+            _metric_row("gpu_base_tree", y_test, base_test, device="cpu"),
+            _metric_row(
+                "raw_gpu_residual_corrected",
+                y_test,
+                pred_raw_test,
+                device=device,
+                train_seconds=train_seconds,
+                inference_seconds=inference_seconds,
+            ),
+            _metric_row(
+                "guarded_gpu_residual_corrected",
+                y_test,
+                pred_guarded_test,
+                device=device,
+                train_seconds=train_seconds,
+                inference_seconds=inference_seconds,
+            ),
+            _metric_row(
+                "learned_abc_gpu_residual_corrected",
+                y_test,
+                pred_learned_abc_test,
+                device=device,
+                train_seconds=train_seconds,
+                inference_seconds=inference_seconds,
+            ),
+        ]
+    )
 
     abc_grid.to_csv(out_dir / "gpu_integrated_learned_abc_grid.csv", index=False)
-    pd.DataFrame([selected_abc_dict]).to_csv(out_dir / "gpu_integrated_selected_learned_abc.csv", index=False)
+    pd.DataFrame([selected_abc_dict]).to_csv(
+        out_dir / "gpu_integrated_selected_learned_abc.csv", index=False
+    )
     grid.to_csv(out_dir / "gpu_integrated_guard_grid.csv", index=False)
     test_metrics.to_csv(out_dir / "gpu_integrated_metrics.csv", index=False)
-    with open(out_dir / "gpu_integrated_selected_guard.json", "w", encoding="utf-8") as f:
-        json.dump({
-            "selected_guard": selected_dict,
-            "selected_learned_abc": selected_abc_dict,
-            "device": device,
-            "feature_columns": feature_cols,
-            "split": {
-                "train_base_rows": int(len(train_base)),
-                "residual_fit_rows": int(len(residual_fit)),
-                "guard_val_rows": int(len(guard_val)),
-                "test_rows": int(len(test_out)),
+    with open(
+        out_dir / "gpu_integrated_selected_guard.json", "w", encoding="utf-8"
+    ) as f:
+        json.dump(
+            {
+                "selected_guard": selected_dict,
+                "selected_learned_abc": selected_abc_dict,
+                "device": device,
+                "feature_columns": feature_cols,
+                "split": {
+                    "train_base_rows": int(len(train_base)),
+                    "residual_fit_rows": int(len(residual_fit)),
+                    "guard_val_rows": int(len(guard_val)),
+                    "test_rows": int(len(test_out)),
+                },
+                "claim_boundary": "Leakage-safe stage: residual model fit on residual_fit, guard selected on val, test used only for final evaluation.",
             },
-            "claim_boundary": "Leakage-safe stage: residual model fit on residual_fit, guard selected on val, test used only for final evaluation.",
-        }, f, indent=2)
+            f,
+            indent=2,
+        )
 
     report = [
         "# Leakage-Safe Guarded GPU Residual Corrector",
@@ -488,7 +595,9 @@ def apply_guarded_gpu_residual_stage(
         "",
         "The residual model is fit on residual_fit only. Lambda and clipping are selected on guard_val only. Test is used only once for final evaluation.",
     ]
-    (rep_dir / "gpu_integrated_guarded_residual_report.md").write_text("\n".join(report), encoding="utf-8")
+    (rep_dir / "gpu_integrated_guarded_residual_report.md").write_text(
+        "\n".join(report), encoding="utf-8"
+    )
 
     return {
         "test": test_out,
