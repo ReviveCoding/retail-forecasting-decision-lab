@@ -1,25 +1,51 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any
+
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 
 DEFAULT_FEATURES = [
-    'lag_7','lag_14','lag_28','rolling_mean_7','rolling_std_7','rolling_mean_28','rolling_std_28',
-    'sell_price','price_change_7','event_flag','snap_flag','dayofweek','month','weekofyear','is_weekend',
-    'cat_demand_lag_mean','dept_demand_lag_mean','store_demand_lag_mean','state_demand_lag_mean',
-    'days_since_series_start','normalized_lifecycle_age','rolling_demand_state','volatility_state',
-    'intermittency_score','event_recent_7','category_relative_age','zero_demand_recent_7','demand_drop_flag'
+    "lag_7",
+    "lag_14",
+    "lag_28",
+    "rolling_mean_7",
+    "rolling_std_7",
+    "rolling_mean_28",
+    "rolling_std_28",
+    "sell_price",
+    "price_change_7",
+    "event_flag",
+    "snap_flag",
+    "dayofweek",
+    "month",
+    "weekofyear",
+    "is_weekend",
+    "cat_demand_lag_mean",
+    "dept_demand_lag_mean",
+    "store_demand_lag_mean",
+    "state_demand_lag_mean",
+    "days_since_series_start",
+    "normalized_lifecycle_age",
+    "rolling_demand_state",
+    "volatility_state",
+    "intermittency_score",
+    "event_recent_7",
+    "category_relative_age",
+    "zero_demand_recent_7",
+    "demand_drop_flag",
 ]
-CATEGORICAL_FEATURES = ['cat_id','dept_id','store_id','state_id']
+CATEGORICAL_FEATURES = ["cat_id", "dept_id", "store_id", "state_id"]
+
 
 @dataclass
 class ForecastModel:
     model: Any
     columns: list[str]
     feature_importance: pd.DataFrame
-    algorithm: str = 'RandomForestRegressor'
+    algorithm: str = "RandomForestRegressor"
 
 
 def _make_X(df: pd.DataFrame, columns: list[str] | None = None) -> pd.DataFrame:
@@ -48,7 +74,7 @@ def train_forecaster(
     not a production LightGBM/XGBoost implementation.
     """
     X = _make_X(train_df)
-    y = train_df['demand'].astype(float).clip(lower=0)
+    y = train_df["demand"].astype(float).clip(lower=0)
     model = RandomForestRegressor(
         n_estimators=int(n_estimators),
         max_depth=int(max_depth) if max_depth else None,
@@ -57,7 +83,9 @@ def train_forecaster(
         n_jobs=-1,
     )
     model.fit(X, y)
-    imp = pd.DataFrame({'feature': X.columns, 'importance': model.feature_importances_}).sort_values('importance', ascending=False)
+    imp = pd.DataFrame(
+        {"feature": X.columns, "importance": model.feature_importances_}
+    ).sort_values("importance", ascending=False)
     return ForecastModel(model=model, columns=list(X.columns), feature_importance=imp)
 
 

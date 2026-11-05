@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from pathlib import Path
 import zipfile
-import pandas as pd
+from pathlib import Path
 
+import pandas as pd
 
 REQUIRED_M5_FILES = {
     "sales": "sales_train_evaluation.csv",
@@ -30,7 +30,11 @@ def _find_file_in_zip(zf: zipfile.ZipFile, filename: str) -> str:
     if filename in names:
         return filename
 
-    matches = [name for name in names if name.endswith("/" + filename) or name.endswith(filename)]
+    matches = [
+        name
+        for name in names
+        if name.endswith("/" + filename) or name.endswith(filename)
+    ]
     if matches:
         return matches[0]
 
@@ -96,8 +100,7 @@ def _read_filtered_prices(
 
         for chunk in reader:
             chunk = chunk[
-                chunk["item_id"].isin(item_ids)
-                & chunk["store_id"].isin(store_ids)
+                chunk["item_id"].isin(item_ids) & chunk["store_id"].isin(store_ids)
             ]
             if not chunk.empty:
                 chunks.append(chunk)
@@ -144,7 +147,7 @@ def load_m5_panel(
     )
 
     all_d_cols = [c for c in sales_header.columns if c.startswith("d_")]
-    d_cols = all_d_cols[-int(max_days):] if max_days else all_d_cols
+    d_cols = all_d_cols[-int(max_days) :] if max_days else all_d_cols
 
     sales = _read_m5_csv(
         m5_path,
@@ -179,8 +182,7 @@ def load_m5_panel(
         store_ids = sorted(sales["store_id"].unique())[: int(n_stores)]
         item_ids = sorted(sales["item_id"].unique())[: int(n_items)]
         sales = sales[
-            sales["store_id"].isin(store_ids)
-            & sales["item_id"].isin(item_ids)
+            sales["store_id"].isin(store_ids) & sales["item_id"].isin(item_ids)
         ].copy()
     else:
         store_ids = sorted(sales["store_id"].unique())
@@ -211,10 +213,12 @@ def load_m5_panel(
         how="left",
     )
 
-    panel["sell_price"] = panel.groupby(["item_id", "store_id"])["sell_price"].transform(
-        lambda s: s.ffill().bfill()
+    panel["sell_price"] = panel.groupby(["item_id", "store_id"])[
+        "sell_price"
+    ].transform(lambda s: s.ffill().bfill())
+    panel["sell_price"] = (
+        panel["sell_price"].fillna(panel["sell_price"].median()).fillna(0.0)
     )
-    panel["sell_price"] = panel["sell_price"].fillna(panel["sell_price"].median()).fillna(0.0)
 
     panel["event_flag"] = panel["event_name_1"].notna().astype(int)
     panel["event_name_1"] = panel["event_name_1"].fillna("none")

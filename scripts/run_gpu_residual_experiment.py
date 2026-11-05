@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import subprocess
@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 
 import pandas as pd
-
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "outputs"
@@ -45,8 +44,14 @@ def main() -> None:
             )
 
     run_step("PyTorch CUDA validation", "scripts/validate_pytorch_gpu.py")
-    run_step("GPU residual corrector smoke experiment", "scripts/run_torch_residual_corrector_smoke.py")
-    run_step("Guarded GPU residual postprocess", "scripts/run_guarded_gpu_residual_postprocess.py")
+    run_step(
+        "GPU residual corrector smoke experiment",
+        "scripts/run_torch_residual_corrector_smoke.py",
+    )
+    run_step(
+        "Guarded GPU residual postprocess",
+        "scripts/run_guarded_gpu_residual_postprocess.py",
+    )
 
     residual_metrics_path = OUT / "gpu_residual_corrector_metrics.csv"
     selected_path = OUT / "selected_guarded_gpu_residual_policy.csv"
@@ -56,8 +61,12 @@ def main() -> None:
     selected = pd.read_csv(selected_path).iloc[0].to_dict()
 
     tree = residual_metrics[residual_metrics["model"].eq("tree_ensemble")].iloc[0]
-    raw_gpu = residual_metrics[residual_metrics["model"].eq("torch_gpu_residual_corrected")].iloc[0]
-    current = residual_metrics[residual_metrics["model"].eq("current_residual_corrected")].iloc[0]
+    raw_gpu = residual_metrics[
+        residual_metrics["model"].eq("torch_gpu_residual_corrected")
+    ].iloc[0]
+    current = residual_metrics[
+        residual_metrics["model"].eq("current_residual_corrected")
+    ].iloc[0]
 
     validation = {}
     if validation_path.exists():
@@ -79,7 +88,9 @@ def main() -> None:
             "rmse": float(current["rmse"]),
             "mean_bias": float(current["mean_bias"]),
             "under_forecast_rate": float(current["under_forecast_rate"]),
-            "relative_wape_improvement_vs_tree_pct": pct_improvement(float(tree["wape"]), float(current["wape"])),
+            "relative_wape_improvement_vs_tree_pct": pct_improvement(
+                float(tree["wape"]), float(current["wape"])
+            ),
             "notes": "Existing CPU residual correction artifact.",
         },
         {
@@ -88,7 +99,9 @@ def main() -> None:
             "rmse": float(raw_gpu["rmse"]),
             "mean_bias": float(raw_gpu["mean_bias"]),
             "under_forecast_rate": float(raw_gpu["under_forecast_rate"]),
-            "relative_wape_improvement_vs_tree_pct": pct_improvement(float(tree["wape"]), float(raw_gpu["wape"])),
+            "relative_wape_improvement_vs_tree_pct": pct_improvement(
+                float(tree["wape"]), float(raw_gpu["wape"])
+            ),
             "notes": "CUDA-backed PyTorch residual corrector before guardrails.",
         },
         {
@@ -97,7 +110,9 @@ def main() -> None:
             "rmse": float(selected["rmse"]),
             "mean_bias": float(selected["mean_bias"]),
             "under_forecast_rate": float(selected["under_forecast_rate"]),
-            "relative_wape_improvement_vs_tree_pct": pct_improvement(float(tree["wape"]), float(selected["wape"])),
+            "relative_wape_improvement_vs_tree_pct": pct_improvement(
+                float(tree["wape"]), float(selected["wape"])
+            ),
             "lambda": float(selected.get("lambda", 0.0)),
             "clip_quantile": float(selected.get("clip_quantile", 0.0)),
             "notes": "Guarded GPU residual correction using residual clipping and correction-strength scaling.",
