@@ -29,11 +29,11 @@ def validate_panel_schema(panel: pd.DataFrame) -> dict:
     }
     date_gaps = 0
     if "item_store_id" in panel.columns and "date" in panel.columns:
-        for _, g in panel.groupby("item_store_id"):
-            diffs = g.sort_values("date")["date"].diff().dropna().dt.days
-            date_gaps += int((diffs > 1).sum())
+        ordered = panel.sort_values("date")
+        differences = ordered.groupby("item_store_id")["date"].diff()
+        date_gaps = int((differences.dt.days > 1).sum())
     return {
-        "n_rows": int(len(panel)),
+        "n_rows": len(panel),
         "n_series": int(panel["item_store_id"].nunique())
         if "item_store_id" in panel.columns
         else 0,
